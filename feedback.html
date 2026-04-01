@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Feedback</title>
+    <link rel="stylesheet" href="CyberInfo.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+        body { font-family: 'Montserrat', sans-serif; background-color: #EEEEEE; color: #401967; margin: 0; padding: 0; }
+        header { background-color: #5D218D; color: #E5BC4F; padding: 20px; text-align: center; font-size: 1.8em; font-weight: bold; margin: 0; }
+        nav { background-color: #ECC250; padding: 10px; text-align: center; margin: 0; }
+        nav ul { list-style: none; padding: 0; margin: 0; }
+        nav ul li { display: inline; margin: 0 10px; }
+        nav a { color: #401967; text-decoration: none; padding: 10px 20px; font-weight: bold; transition: background-color 0.3s, color 0.3s; }
+        nav a:hover { background-color: #E6BD4F; color: #FFFFFF; border-radius: 5px; }
+        section { max-width: 800px; margin: 30px auto; padding: 20px; background-color: white; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); border-radius: 8px; }
+        h2, h3 { color: #5D218D; }
+        label { font-weight: bold; margin-top: 10px; color: #401967; display: block; }
+        input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%; margin-top: 5px; font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
+        button { background-color: #5D218D; color: #E5BC4F; padding: 10px 16px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.95em; font-weight: bold; transition: background-color 0.3s; margin-top: 10px; }
+        button:hover { background-color: #401967; }
+        footer { background-color: #5D218D; color: #E5BC4F; text-align: center; padding: 15px; margin-top: 20px; }
+        .event-card { border: 1px solid #ccc; margin-bottom: 20px; padding: 15px; border-radius: 8px; background-color: #fff; }
+        .event-card img { max-width: 100%; margin-top: 10px; border-radius: 8px; }
+        .rating-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+        .rating-row input { width: 70px; }
+        details summary { cursor: pointer; font-weight: bold; background-color: #eee; padding: 8px; border-radius: 5px; margin-top: 10px; }
+        details[open] summary { background-color: #ddd; }
+        .review-item { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 0.95em; }
+        .review-item:last-child { border-bottom: none; }
+        .review-status { font-size: 0.9em; margin-top: 6px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Event Feedback</h1>
+    <nav>
+        <ul>
+            <li><a href="events.html">Events</a></li>
+            <li><a href="CyberInfo.html">Post Event</a></li>
+            <li><a href="feedback.html">Feedback</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main>
+    <section id="feedbackEvents">
+        <h2>Leave Feedback</h2>
+        <div id="feedbackList"><p>Loading events...</p></div>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2025 G.E.N - UAlbany Student Events</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+    const SUPABASE_URL  = "https://ufusnsaoicpaemlzzkrm.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmdXNuc2FvaWNwYWVtbHp6a3JtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NzgyNTYsImV4cCI6MjA5MDU1NDI1Nn0.Uot3VV_3ooGZw8ZGAJl4CPCvltmn-F1xvxlBoLDf-Xg";
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+</script>
+
+<script>
+    function containsBannedWords(text) {
+        const banned = ["ass","asshole","bastard","bitch","bloody","bollocks","boner","bullshit","butt","cock","crap","cunt","damn","dick","dickhead","dyke","fag","faggot","fuck","fucker","fucking","goddamn","hell","hoe","jackass","jerkoff","kike","motherfucker","nigga","nigger","paki","piss","prick","pussy","retard","shit","shithead","slut","spic","tard","twat","wank","whore"];
+        return banned.some(w => text.toLowerCase().includes(w));
+    }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+        const feedbackList = document.getElementById("feedbackList");
+
+        const { data: events, error: eventsError } = await db
+            .from("events")
+            .select("*")
+            .order("date", { ascending: true });
+
+        if (eventsError) {
+            feedbackList.innerHTML = `<p style="color:red;">❌ Failed to load events: ${eventsError.message}</p>`;
+            return;
+        }
+
+        if (!events || events.length === 0) {
+            feedbackList.innerHTML = "<p>No events found.</p>";
+            return;
+        }
+
+        feedbackList.innerHTML = "";
+
+        for (const event of events) {
+            const { data: feedbackData } = await db
+                .from("feedback")
+                .select("*")
+                .eq("event_id", event.id)
+                .order("created_at", { ascending: true });
+
+            const reviews = feedbackData || [];
+            const avgRating = reviews.length > 0
+                ? (reviews.reduce((sum, fb) => sum + fb.rating, 0) / reviews.length).toFixed(1)
+                : "N/A";
+
+            const card = document.createElement("div");
+            card.className = "event-card";
+            card.innerHTML = `
+                <h3>${event.name}
+                    <span style="font-size:0.8em;color:#888;">
+                        (Avg. Rating: ⭐ <span class="avg-rating">${avgRating}</span>/10)
+                    </span>
+                </h3>
+                <p><strong>Date:</strong> ${event.date}</p>
+                <p><strong>Time:</strong> ${event.time}</p>
+                <p><strong>Location:</strong> ${event.location}</p>
+                <p><strong>Description:</strong> ${event.description}</p>
+                ${event.image_url ? `<img src="${event.image_url}" alt="Event Image">` : ""}
+
+                <div style="margin-top:12px;">
+                    <label>Your Review:</label>
+                    <textarea class="review-input" rows="3" placeholder="Write your review..."></textarea>
+                    <div class="rating-row">
+                        <label>Rating:</label>
+                        <input type="number" class="rating-input" min="1" max="10" placeholder="1–10">
+                        <span>/10</span>
+                    </div>
+                    <button class="submit-review-btn">Submit Review</button>
+                    <p class="review-status"></p>
+                </div>
+
+                <details>
+                    <summary>
+                        <strong>View <span class="review-count">${reviews.length}</span>
+                        Review${reviews.length !== 1 ? "s" : ""}</strong>
+                    </summary>
+                    <div class="reviews-container">
+                        ${reviews.map(fb => `<div class="review-item">⭐ ${fb.rating}/10 – ${fb.review}</div>`).join("")}
+                    </div>
+                </details>
+            `;
+
+            card.querySelector(".submit-review-btn").addEventListener("click", async function () {
+                const reviewText = card.querySelector(".review-input").value.trim();
+                const rating     = parseInt(card.querySelector(".rating-input").value);
+                const statusEl   = card.querySelector(".review-status");
+
+                if (!reviewText || isNaN(rating) || rating < 1 || rating > 10) {
+                    statusEl.textContent = "⚠️ Please enter a review and a rating between 1 and 10.";
+                    statusEl.style.color = "red";
+                    return;
+                }
+                if (containsBannedWords(reviewText)) {
+                    statusEl.textContent = "❌ Your review contains inappropriate words.";
+                    statusEl.style.color = "red";
+                    return;
+                }
+
+                const { error: fbError } = await db
+                    .from("feedback")
+                    .insert([{ event_id: event.id, review: reviewText, rating }]);
+
+                if (fbError) {
+                    statusEl.textContent = "❌ Failed to submit: " + fbError.message;
+                    statusEl.style.color = "red";
+                    return;
+                }
+
+                const reviewsContainer = card.querySelector(".reviews-container");
+                const newItem = document.createElement("div");
+                newItem.className = "review-item";
+                newItem.textContent = `⭐ ${rating}/10 – ${reviewText}`;
+                reviewsContainer.appendChild(newItem);
+
+                const allItems = [...reviewsContainer.querySelectorAll(".review-item")];
+                const newAvg = (allItems.reduce((sum, el) => {
+                    return sum + parseInt(el.textContent.match(/⭐ (\d+)/)[1]);
+                }, 0) / allItems.length).toFixed(1);
+
+                card.querySelector(".avg-rating").textContent = newAvg;
+                const newCount = allItems.length;
+                card.querySelector(".review-count").textContent = newCount;
+
+                card.querySelector(".review-input").value = "";
+                card.querySelector(".rating-input").value = "";
+                statusEl.textContent = "✅ Review submitted!";
+                statusEl.style.color = "green";
+            });
+
+            feedbackList.appendChild(card);
+        }
+    });
+</script>
+
+</body>
+</html>

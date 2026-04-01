@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G.E.N - Events</title>
+    <link rel="stylesheet" href="CyberInfo.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+        body { font-family: 'Montserrat', sans-serif; background-color: #EEEEEE; color: #401967; margin: 0; padding: 0; }
+        header { background-color: #5D218D; color: #E5BC4F; padding: 20px; text-align: center; font-size: 1.8em; font-weight: bold; margin: 0; }
+        nav { background-color: #ECC250; padding: 10px; text-align: center; margin: 0; }
+        nav ul { list-style: none; padding: 0; margin: 0; }
+        nav ul li { display: inline; margin: 0 10px; }
+        nav a { color: #401967; text-decoration: none; padding: 10px 20px; font-weight: bold; transition: background-color 0.3s, color 0.3s; }
+        nav a:hover { background-color: #E6BD4F; color: #FFFFFF; border-radius: 5px; }
+
+        /* SLIDER FIX */
+        .slider-container { position: relative; width: 100%; height: 300px; overflow: hidden; background-color: #5D218D; }
+        .slider { display: flex; width: 500%; height: 100%; transition: transform 0.5s ease-in-out; }
+        .slide { width: 20%; height: 100%; flex-shrink: 0; }
+		.slide img { width: 100%; height: 100%; object-fit: fill; background-color: #5D218D; display: block; }
+        .arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px; cursor: pointer; font-size: 18px; z-index: 10; }
+        .left-arrow { left: 10px; }
+        .right-arrow { right: 10px; }
+        section { max-width: 800px; margin: 30px auto; padding: 20px; background-color: white; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); border-radius: 8px; }
+        h2, h3 { color: #5D218D; }
+        button { background-color: #5D218D; color: #E5BC4F; padding: 12px 18px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: background-color 0.3s; }
+        button:hover { background-color: #401967; }
+        footer { background-color: #5D218D; color: #E5BC4F; text-align: center; padding: 15px; margin-top: 20px; }
+        .event-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 8px; background-color: #fff; }
+        .event-card h3 { margin-top: 0; }
+        .event-card p { margin: 4px 0; }
+        .event-card img { max-width: 100%; margin-top: 10px; border-radius: 8px; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .delete-btn { background: transparent; border: none; font-size: 1.2em; cursor: pointer; padding: 0; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Events Page</h1>
+    <nav>
+        <ul>
+            <li><a href="events.html">Events</a></li>
+            <li><a href="CyberInfo.html">Post Event</a></li>
+            <li><a href="feedback.html">Feedback</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="slider-container">
+    <div class="slider" id="slider">
+        <div class="slide"><img src="eventimg1.jpg" alt="Event 1"></div>
+        <div class="slide"><img src="eventimg2.jpg" alt="Event 2"></div>
+        <div class="slide"><img src="eventimg3.jpg" alt="Event 3"></div>
+        <div class="slide"><img src="eventimg4.jpg" alt="Event 4"></div>
+        <div class="slide"><img src="eventimg5.png" alt="Event 5"></div>
+    </div>
+    <button class="arrow left-arrow" onclick="prevSlide()">&#10094;</button>
+    <button class="arrow right-arrow" onclick="nextSlide()">&#10095;</button>
+</div>
+
+<main>
+    <section id="events">
+        <h2>Upcoming Events</h2>
+        <div id="eventList"><p>Loading events...</p></div>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2025 G.E.N - UAlbany Student Events</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+    const SUPABASE_URL  = "https://ufusnsaoicpaemlzzkrm.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmdXNuc2FvaWNwYWVtbHp6a3JtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NzgyNTYsImV4cCI6MjA5MDU1NDI1Nn0.Uot3VV_3ooGZw8ZGAJl4CPCvltmn-F1xvxlBoLDf-Xg";
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+</script>
+
+<script>
+    // Slider
+    let index = 0;
+    const slides = document.querySelectorAll(".slide");
+    const totalSlides = slides.length;
+    function showSlide(n) {
+        index = (n + totalSlides) % totalSlides;
+        document.getElementById("slider").style.transform = `translateX(${-index * (100 / totalSlides)}%)`;
+    }
+    function nextSlide() { showSlide(index + 1); }
+    function prevSlide() { showSlide(index - 1); }
+    setInterval(nextSlide, 3000);
+
+    // Load ALL events from Supabase, sorted by date
+    document.addEventListener("DOMContentLoaded", async function () {
+        const eventList = document.getElementById("eventList");
+
+        const { data: events, error } = await db
+            .from("events")
+            .select("*")
+            .order("date", { ascending: true })
+            .order("time", { ascending: true });
+
+        if (error) {
+            eventList.innerHTML = `<p style="color:red;">❌ Failed to load events: ${error.message}</p>`;
+            return;
+        }
+
+        if (!events || events.length === 0) {
+            eventList.innerHTML = "<p>No upcoming events.</p>";
+            return;
+        }
+
+        eventList.innerHTML = "";
+
+        events.forEach(event => {
+            const card = document.createElement("div");
+            card.className = "event-card";
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3>${event.name}</h3>
+                    <button class="delete-btn" onclick="attemptDelete('${event.id}', this)">🗑️</button>
+                </div>
+                <p><strong>Date:</strong> ${event.date}</p>
+                <p><strong>Time:</strong> ${event.time}</p>
+                <p><strong>Location:</strong> ${event.location}</p>
+                <p><strong>Description:</strong> ${event.description}</p>
+                ${event.image_url ? `<img src="${event.image_url}" alt="Event Image">` : ""}
+            `;
+            eventList.appendChild(card);
+        });
+    });
+
+    // Delete event
+    async function attemptDelete(eventId, btnEl) {
+        const adminPass = prompt("Enter admin password to delete:");
+        if (adminPass !== "123") {
+            alert("❌ Incorrect password. Access denied.");
+            return;
+        }
+        const { error } = await db.from("events").delete().eq("id", eventId);
+        if (error) {
+            alert("❌ Failed to delete: " + error.message);
+            return;
+        }
+        btnEl.closest(".event-card").remove();
+        const eventList = document.getElementById("eventList");
+        if (eventList.children.length === 0) {
+            eventList.innerHTML = "<p>No upcoming events.</p>";
+        }
+    }
+</script>
+
+</body>
+</html>

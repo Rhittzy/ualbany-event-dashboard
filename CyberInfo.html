@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G.E.N - UAlbany Event Dashboard</title>
+    <link rel="stylesheet" href="CyberInfo.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+        body { font-family: 'Montserrat', sans-serif; background-color: #EEEEEE; color: #401967; margin: 0; padding: 0; }
+        header { background-color: #5D218D; color: #E5BC4F; padding: 20px; text-align: center; font-size: 1.8em; font-weight: bold; margin: 0; }
+        nav { background-color: #ECC250; padding: 10px; text-align: center; margin: 0; }
+        nav ul { list-style: none; padding: 0; margin: 0; }
+        nav ul li { display: inline; margin: 0 10px; }
+        nav a { color: #401967; text-decoration: none; padding: 10px 20px; font-weight: bold; transition: background-color 0.3s, color 0.3s; }
+        nav a:hover { background-color: #E6BD4F; color: #FFFFFF; border-radius: 5px; }
+
+        /* SLIDER FIX */
+        .slider-container { position: relative; width: 100%; height: 300px; overflow: hidden; background-color: #5D218D; }
+        .slider { display: flex; width: 500%; height: 100%; transition: transform 0.5s ease-in-out; }
+        .slide { width: 20%; height: 100%; flex-shrink: 0; }
+		.slide img { width: 100%; height: 100%; object-fit: fill; background-color: #5D218D; display: block; }
+        .arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px; cursor: pointer; font-size: 18px; z-index: 10; }
+        .left-arrow { left: 10px; }
+        .right-arrow { right: 10px; }
+        section { max-width: 800px; margin: 30px auto; padding: 20px; background-color: white; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); border-radius: 8px; }
+        h2, h3 { color: #5D218D; }
+        form { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-top: 10px; color: #401967; }
+        input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%; margin-top: 5px; font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
+        button { background-color: #5D218D; color: #E5BC4F; padding: 12px 18px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: background-color 0.3s; margin-top: 15px; }
+        button:hover { background-color: #401967; }
+        button:disabled { background-color: #999; cursor: not-allowed; }
+        footer { background-color: #5D218D; color: #E5BC4F; text-align: center; padding: 15px; margin-top: 20px; }
+        #statusMsg { margin-top: 12px; font-weight: bold; font-size: 0.95em; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>UAlbany Event Dashboard</h1>
+    <nav>
+        <ul>
+            <li><a href="events.html">Events</a></li>
+            <li><a href="CyberInfo.html">Post Event</a></li>
+            <li><a href="feedback.html">Feedback</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="slider-container">
+    <div class="slider" id="slider">
+        <div class="slide"><img src="eventimg1.jpg" alt="Event 1"></div>
+        <div class="slide"><img src="eventimg2.jpg" alt="Event 2"></div>
+        <div class="slide"><img src="eventimg3.jpg" alt="Event 3"></div>
+        <div class="slide"><img src="eventimg4.jpg" alt="Event 4"></div>
+        <div class="slide"><img src="eventimg5.png" alt="Event 5"></div>
+    </div>
+    <button class="arrow left-arrow" onclick="prevSlide()">&#10094;</button>
+    <button class="arrow right-arrow" onclick="nextSlide()">&#10095;</button>
+</div>
+
+<main>
+    <section id="submit-event">
+        <h2>Post an Event</h2>
+        <form id="eventForm">
+            <label for="eventName">Event Name:</label>
+            <input type="text" id="eventName" required>
+
+            <label for="eventDate">Date:</label>
+            <input type="date" id="eventDate" required>
+
+            <label for="eventTime">Time:</label>
+            <input type="time" id="eventTime" required>
+
+            <label for="eventLocation">Location:</label>
+            <input type="text" id="eventLocation" required>
+
+            <label for="eventDescription">Description:</label>
+            <textarea id="eventDescription" rows="4" required></textarea>
+
+            <label for="eventImage">Upload Event Photo (optional):</label>
+            <input type="file" id="eventImage" accept="image/*" onchange="previewImage(event)">
+            <div id="imagePreview" style="margin-top: 10px;"></div>
+
+            <button type="submit" id="submitBtn">Submit Event</button>
+            <p id="statusMsg"></p>
+        </form>
+    </section>
+</main>
+
+<footer>
+    <p>&copy; 2025 G.E.N - UAlbany Student Events</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+    const SUPABASE_URL  = "https://ufusnsaoicpaemlzzkrm.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmdXNuc2FvaWNwYWVtbHp6a3JtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NzgyNTYsImV4cCI6MjA5MDU1NDI1Nn0.Uot3VV_3ooGZw8ZGAJl4CPCvltmn-F1xvxlBoLDf-Xg";
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+</script>
+
+<script>
+    // Slider
+    let index = 0;
+    const slides = document.querySelectorAll(".slide");
+    const totalSlides = slides.length;
+    function showSlide(n) {
+        index = (n + totalSlides) % totalSlides;
+        document.getElementById("slider").style.transform = `translateX(${-index * (100 / totalSlides)}%)`;
+    }
+    function nextSlide() { showSlide(index + 1); }
+    function prevSlide() { showSlide(index - 1); }
+    setInterval(nextSlide, 3000);
+
+    // Image preview
+    function previewImage(event) {
+        const preview = document.getElementById("imagePreview");
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%;margin-top:10px;border-radius:8px;">`;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.innerHTML = "";
+        }
+    }
+
+    // Banned words
+    function containsBannedWords(text) {
+        const banned = ["ass","asshole","bastard","bitch","bloody","bollocks","boner","bullshit","butt","cock","crap","cunt","damn","dick","dickhead","dyke","fag","faggot","fuck","fucker","fucking","goddamn","hell","hoe","jackass","jerkoff","kike","motherfucker","nigga","nigger","paki","piss","prick","pussy","retard","shit","shithead","slut","spic","tard","twat","wank","whore"];
+        return banned.some(w => text.toLowerCase().includes(w));
+    }
+
+    // Form submit
+    document.getElementById("eventForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const name        = document.getElementById("eventName").value.trim();
+        const date        = document.getElementById("eventDate").value;
+        const time        = document.getElementById("eventTime").value;
+        const location    = document.getElementById("eventLocation").value.trim();
+        const description = document.getElementById("eventDescription").value.trim();
+        const imageFile   = document.getElementById("eventImage").files[0];
+        const submitBtn   = document.getElementById("submitBtn");
+        const statusMsg   = document.getElementById("statusMsg");
+
+        if (containsBannedWords(name) || containsBannedWords(location) || containsBannedWords(description)) {
+            statusMsg.textContent = "❌ Your submission contains inappropriate words.";
+            statusMsg.className = "error";
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting...";
+        statusMsg.textContent = "";
+
+        let image_url = "";
+
+        if (imageFile) {
+            const fileExt  = imageFile.name.split(".").pop();
+            const fileName = `${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await db.storage
+                .from("event-images")
+                .upload(fileName, imageFile, { cacheControl: "3600", upsert: false });
+
+            if (uploadError) {
+                statusMsg.textContent = "❌ Image upload failed: " + uploadError.message;
+                statusMsg.className = "error";
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Event";
+                return;
+            }
+
+            const { data: urlData } = db.storage
+                .from("event-images")
+                .getPublicUrl(fileName);
+
+            image_url = urlData.publicUrl;
+        }
+
+        const { error: insertError } = await db
+            .from("events")
+            .insert([{ name, date, time, location, description, image_url }]);
+
+        if (insertError) {
+            statusMsg.textContent = "❌ Failed to save event: " + insertError.message;
+            statusMsg.className = "error";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Submit Event";
+            return;
+        }
+
+        statusMsg.textContent = "✅ Event submitted successfully!";
+        statusMsg.className = "success";
+        this.reset();
+        document.getElementById("imagePreview").innerHTML = "";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Event";
+        setTimeout(() => { window.location.href = "events.html"; }, 1200);
+    });
+</script>
+
+</body>
+</html>
